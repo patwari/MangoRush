@@ -37,6 +37,9 @@ var monoloco;
         // Create an array to store key -> sprite pair
         var spriteArray = {};
         var mangoSpriteArray = [];
+        var line;
+        var draggingBegin = false;
+        var defaultStonePos;
         // Preload of the default state. It is used to load all needed resources
         function preload() {
             core.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
@@ -57,6 +60,8 @@ var monoloco;
             core.mainContainer = new Phaser.Group(core.game, core.game.stage, "mainContainer", false);
             core.mainContainer.width = core.gameConstants.GAME_WIDTH;
             core.mainContainer.height = core.gameConstants.GAME_HEIGHT;
+            // Resize the game container as size changes
+            core.mainContainer.scale.set(Math.min(innerWidth / core.gameConstants.GAME_WIDTH, innerHeight / core.gameConstants.GAME_HEIGHT));
             spriteArray.skySprite = new Phaser.Sprite(core.game, wInPerc(0), hInPerc(0), "Sky");
             spriteArray.skySprite.name = "Sky";
             spriteArray.skySprite.width = core.gameConstants.GAME_WIDTH;
@@ -66,19 +71,21 @@ var monoloco;
             spriteArray.groundSprite.name = "Ground";
             spriteArray.groundSprite.width = core.gameConstants.GAME_WIDTH;
             spriteArray.groundSprite.height = hInPerc(20);
-            spriteArray.treeSprite = new Phaser.Sprite(core.game, wInPerc(100), hInPerc(100), "Tree");
+            spriteArray.treeSprite = new Phaser.Sprite(core.game, wInPerc(103), hInPerc(100), "Tree");
             spriteArray.treeSprite.name = "Tree";
-            spriteArray.treeSprite.scale.setTo(1, 1.2);
+            spriteArray.treeSprite.scale.setTo(1.3, 1.5);
             spriteArray.treeSprite.anchor.setTo(1, 1);
-            spriteArray.boySprite = new Phaser.Sprite(core.game, wInPerc(5), hInPerc(95), "Boy");
+            spriteArray.boySprite = new Phaser.Sprite(core.game, wInPerc(8), hInPerc(95), "Boy");
             spriteArray.boySprite.name = "Boy";
-            spriteArray.boySprite.scale.setTo(0.9);
+            spriteArray.boySprite.scale.setTo(0.6);
             spriteArray.boySprite.anchor.setTo(0, 1);
-            spriteArray.stoneSprite = new Phaser.Sprite(core.game, 0, 0, "Stone");
+            spriteArray.stoneSprite = new Phaser.Sprite(core.game, spriteArray.boySprite.left + 10, spriteArray.boySprite.top + 70, "Stone");
             spriteArray.stoneSprite.name = "Stone";
             spriteArray.stoneSprite.scale.setTo(0.3);
             spriteArray.stoneSprite.anchor.setTo(0.5);
-            spriteArray.stoneSprite.visible = false;
+            spriteArray.stoneSprite.inputEnabled = true;
+            spriteArray.stoneSprite.input.enableDrag(true);
+            defaultStonePos = spriteArray.stoneSprite.position;
             core.mainContainer.addChild(spriteArray.skySprite);
             core.mainContainer.addChild(spriteArray.groundSprite);
             core.mainContainer.addChild(spriteArray.treeSprite);
@@ -108,10 +115,18 @@ var monoloco;
                 mangoContainer.addChild(tempMangoSprite);
             }
             core.mainContainer.addChild(mangoContainer);
+            line = core.game.add.graphics(defaultStonePos.x, defaultStonePos.y);
+            line.lineStyle(10, 0xFFFFFF, 0.9);
+            // Add event listener to stone
+            spriteArray.stoneSprite.events.onInputDown.add(function () {
+                draggingBegin = true;
+            });
         }
         function update() {
-            // TODO
-            core.mainContainer.scale.set(Math.min(innerWidth / core.gameConstants.GAME_WIDTH, innerHeight / core.gameConstants.GAME_HEIGHT));
+            if (draggingBegin) {
+                line.moveTo(spriteArray.stoneSprite.x, spriteArray.stoneSprite.y);
+                line.lineTo(defaultStonePos.x, defaultStonePos.y);
+            }
         }
         function wInPerc(num) {
             return (num / 100) * core.gameConstants.GAME_WIDTH;
