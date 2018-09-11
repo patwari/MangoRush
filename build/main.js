@@ -5,7 +5,6 @@ var monoloco;
     (function (core) {
         core.gameConstants = {
             INIT_MANGO_NUM: 10,
-            INIT_MANGO_POS: [[]],
             GAME_WIDTH: 1920,
             GAME_HEIGHT: 1080,
         };
@@ -42,6 +41,7 @@ var monoloco;
         function preload() {
             core.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
             // Load all assets here
+            core.game.load.image("Sky", "../../res/images/Sky.png");
             core.game.load.image("Ground", "../../res/images/Ground.png");
             core.game.load.image("Mango", "../../res/images/Mango.png");
             core.game.load.image("Tree", "../../res/images/Tree.png");
@@ -57,23 +57,29 @@ var monoloco;
             core.mainContainer = new Phaser.Group(core.game, core.game.stage, "mainContainer", false);
             core.mainContainer.width = core.gameConstants.GAME_WIDTH;
             core.mainContainer.height = core.gameConstants.GAME_HEIGHT;
+            spriteArray.skySprite = new Phaser.Sprite(core.game, wInPerc(0), hInPerc(0), "Sky");
+            spriteArray.skySprite.name = "Sky";
+            spriteArray.skySprite.width = core.gameConstants.GAME_WIDTH;
+            spriteArray.skySprite.alpha = 0.7;
+            spriteArray.skySprite.height = core.gameConstants.GAME_HEIGHT;
             spriteArray.groundSprite = new Phaser.Sprite(core.game, wInPerc(0), hInPerc(80), "Ground");
             spriteArray.groundSprite.name = "Ground";
             spriteArray.groundSprite.width = core.gameConstants.GAME_WIDTH;
             spriteArray.groundSprite.height = hInPerc(20);
             spriteArray.treeSprite = new Phaser.Sprite(core.game, wInPerc(100), hInPerc(100), "Tree");
             spriteArray.treeSprite.name = "Tree";
-            spriteArray.treeSprite.scale.setTo(1.2);
+            spriteArray.treeSprite.scale.setTo(1, 1.2);
             spriteArray.treeSprite.anchor.setTo(1, 1);
-            spriteArray.boySprite = new Phaser.Sprite(core.game, wInPerc(5), hInPerc(100), "Boy");
+            spriteArray.boySprite = new Phaser.Sprite(core.game, wInPerc(5), hInPerc(95), "Boy");
             spriteArray.boySprite.name = "Boy";
-            spriteArray.boySprite.scale.setTo(0.5);
+            spriteArray.boySprite.scale.setTo(0.9);
             spriteArray.boySprite.anchor.setTo(0, 1);
             spriteArray.stoneSprite = new Phaser.Sprite(core.game, 0, 0, "Stone");
             spriteArray.stoneSprite.name = "Stone";
             spriteArray.stoneSprite.scale.setTo(0.3);
             spriteArray.stoneSprite.anchor.setTo(0.5);
             spriteArray.stoneSprite.visible = false;
+            core.mainContainer.addChild(spriteArray.skySprite);
             core.mainContainer.addChild(spriteArray.groundSprite);
             core.mainContainer.addChild(spriteArray.treeSprite);
             core.mainContainer.addChild(spriteArray.boySprite);
@@ -87,14 +93,12 @@ var monoloco;
                 // mangoes will be randomly positioned
                 var p = new Phaser.Point();
                 var tempMangoSprite = new Phaser.Sprite(core.game, 0, 0, "Mango");
-                // tempMangoSprite.x = spriteArray.treeSprite.left + (spriteArray.treeSprite.width * 0.1) + Math.floor(Math.random() * spriteArray.treeSprite.width * 0.8);
-                // tempMangoSprite.y = tempMangoSprite.x + Math.min(tempMangoSprite.left - spriteArray.treeSprite.left, spriteArray.treeSprite.right - tempMangoSprite.left);
                 tempMangoSprite.x = Math.floor(Math.random() * spriteArray.treeSprite.width * 0.8);
                 if (tempMangoSprite.x < spriteArray.treeSprite.width * 0.5) {
-                    tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * tempMangoSprite.x * 0.8);
+                    tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * tempMangoSprite.x);
                 }
                 else {
-                    tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * (spriteArray.treeSprite.width - tempMangoSprite.x) * 0.8);
+                    tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * (spriteArray.treeSprite.width - tempMangoSprite.x));
                 }
                 tempMangoSprite.anchor.set(0.5);
                 tempMangoSprite.width = 50;
@@ -107,13 +111,13 @@ var monoloco;
         }
         function update() {
             // TODO
-            core.mainContainer.scale.set(innerWidth / core.gameConstants.GAME_WIDTH);
+            core.mainContainer.scale.set(Math.min(innerWidth / core.gameConstants.GAME_WIDTH, innerHeight / core.gameConstants.GAME_HEIGHT));
         }
         function wInPerc(num) {
-            return num / 100 * core.gameConstants.GAME_WIDTH;
+            return (num / 100) * core.gameConstants.GAME_WIDTH;
         }
         function hInPerc(num) {
-            return num / 100 * core.gameConstants.GAME_HEIGHT;
+            return (num / 100) * core.gameConstants.GAME_HEIGHT;
         }
     })(core = monoloco.core || (monoloco.core = {}));
 })(monoloco || (monoloco = {}));
