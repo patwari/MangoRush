@@ -38,8 +38,10 @@ var monoloco;
         var spriteArray = {};
         var mangoSpriteArray = [];
         var line;
-        var draggingBegin = false;
-        var defaultStonePos;
+        var isStoneDragging = false;
+        var isStoneReleased = false;
+        var defaultStonePosX;
+        var defaultStonePosY;
         // Preload of the default state. It is used to load all needed resources
         function preload() {
             core.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
@@ -85,7 +87,8 @@ var monoloco;
             spriteArray.stoneSprite.anchor.setTo(0.5);
             spriteArray.stoneSprite.inputEnabled = true;
             spriteArray.stoneSprite.input.enableDrag(true);
-            defaultStonePos = spriteArray.stoneSprite.position;
+            defaultStonePosX = spriteArray.stoneSprite.x;
+            defaultStonePosY = spriteArray.stoneSprite.y;
             core.mainContainer.addChild(spriteArray.skySprite);
             core.mainContainer.addChild(spriteArray.groundSprite);
             core.mainContainer.addChild(spriteArray.treeSprite);
@@ -115,17 +118,28 @@ var monoloco;
                 mangoContainer.addChild(tempMangoSprite);
             }
             core.mainContainer.addChild(mangoContainer);
-            line = core.game.add.graphics(defaultStonePos.x, defaultStonePos.y);
-            line.lineStyle(10, 0xFFFFFF, 0.9);
+            line = new Phaser.Graphics(core.game);
+            line.lineStyle(10, 0xFF0000, 0.9);
+            core.mainContainer.addChild(line);
             // Add event listener to stone
             spriteArray.stoneSprite.events.onInputDown.add(function () {
-                draggingBegin = true;
+                isStoneDragging = true;
+            });
+            spriteArray.stoneSprite.events.onInputUp.add(function () {
+                isStoneDragging = false;
+                isStoneReleased = true;
             });
         }
         function update() {
-            if (draggingBegin) {
-                line.moveTo(spriteArray.stoneSprite.x, spriteArray.stoneSprite.y);
-                line.lineTo(defaultStonePos.x, defaultStonePos.y);
+            if (isStoneDragging) {
+                line.clear();
+                line.lineStyle(5, 0xFF0000, 0.9);
+                line.moveTo(defaultStonePosX, defaultStonePosY);
+                line.lineTo(spriteArray.stoneSprite.x, spriteArray.stoneSprite.y);
+                var angle = Phaser.Point.angle(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
+                spriteArray.stoneSprite.bringToTop();
+            }
+            if (isStoneReleased) {
             }
         }
         function wInPerc(num) {
@@ -136,3 +150,36 @@ var monoloco;
         }
     })(core = monoloco.core || (monoloco.core = {}));
 })(monoloco || (monoloco = {}));
+// var game, bmd, DemoState;
+// var line, graphics;
+// function DemoState() { }
+// DemoState.prototype.preload = function () { };
+// DemoState.prototype.create = function () {
+//     game.stage.setBackgroundColor(0x333333);
+//     bmd = game.add.bitmapData(400, 400);
+//     bmd.ctx.strokeStyle = 'rgba(0, 255, 200, 1)';
+//     bmd.ctx.lineWidth = 20;
+//     bmd.ctx.lineCap = "round";
+//     game.add.sprite(0, 0, bmd);
+//     // http://www.html5gamedevs.com/topic/30063-setting-the-color-and-width-of-a-phaser-line/#comment-172589
+//     line = new Phaser.Line(0, 0, 100, 100);
+//     graphics = game.add.graphics(200, 200);
+//     // graphics = game.add.graphics(line.start.x, line.start.y);
+//     graphics.lineStyle(10, 0xffd900, 1);
+//     graphics.moveTo(line.start.x, line.start.y);
+//     graphics.lineTo(line.end.x, line.end.y);
+//     graphics.endFill();
+// };
+// DemoState.prototype.update = function () {
+//     bmd.clear();
+//     bmd.ctx.beginPath();
+//     bmd.ctx.moveTo(200, 200);
+//     bmd.ctx.lineTo(game.input.x, game.input.y);
+//     bmd.ctx.stroke();
+//     bmd.render();
+// };
+// window.onload = function () {
+//     game = new Phaser.Game(400, 400, Phaser.AUTO, "phaser-demo");
+//     game.state.add("demo", DemoState);
+//     game.state.start("demo");
+// };

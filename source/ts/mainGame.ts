@@ -26,8 +26,10 @@ namespace monoloco.core {
     let mangoSpriteArray: Array<Phaser.Sprite> = [];
     export let mainContainer: Phaser.Group;
     let line: Phaser.Graphics;
-    let draggingBegin: boolean = false;
-    let defaultStonePos: Phaser.Point;
+    let isStoneDragging: boolean = false;
+    let isStoneReleased: boolean = false;
+    let defaultStonePosX: number;
+    let defaultStonePosY: number;
 
     // Preload of the default state. It is used to load all needed resources
     function preload(): void {
@@ -80,7 +82,8 @@ namespace monoloco.core {
         spriteArray.stoneSprite.anchor.setTo(0.5);
         spriteArray.stoneSprite.inputEnabled = true;
         spriteArray.stoneSprite.input.enableDrag(true);
-        defaultStonePos = spriteArray.stoneSprite.position;
+        defaultStonePosX = spriteArray.stoneSprite.x;
+        defaultStonePosY = spriteArray.stoneSprite.y;
 
         mainContainer.addChild(spriteArray.skySprite);
         mainContainer.addChild(spriteArray.groundSprite);
@@ -114,20 +117,36 @@ namespace monoloco.core {
         }
         mainContainer.addChild(mangoContainer);
 
-        line = game.add.graphics(defaultStonePos.x, defaultStonePos.y);
-        line.lineStyle(10, 0xFFFFFF, 0.9);
+        line = new Phaser.Graphics(game);
+        line.lineStyle(10, 0xFF0000, 0.9);
 
+        mainContainer.addChild(line);
         // Add event listener to stone
         spriteArray.stoneSprite.events.onInputDown.add(() => {
-            draggingBegin = true;
+            isStoneDragging = true;
         });
+
+        spriteArray.stoneSprite.events.onInputUp.add(() => {
+            isStoneDragging = false;
+            isStoneReleased = true;
+        })
 
     }
 
     function update(): void {
-        if (draggingBegin) {
-            line.moveTo(spriteArray.stoneSprite.x, spriteArray.stoneSprite.y);
-            line.lineTo(defaultStonePos.x, defaultStonePos.y);
+
+        if (isStoneDragging) {
+            line.clear();
+            line.lineStyle(5, 0xFF0000, 0.9);
+
+            line.moveTo(defaultStonePosX, defaultStonePosY);
+            line.lineTo(spriteArray.stoneSprite.x, spriteArray.stoneSprite.y);
+            let angle = Phaser.Point.angle(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
+            spriteArray.stoneSprite.bringToTop();
+        }
+
+        if (isStoneReleased) {
+
         }
     }
 
