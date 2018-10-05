@@ -230,8 +230,8 @@ var monoloco;
                 finalScoreContainer.destroy();
             });
             var againButton = core.game.add.button(w * 0.35, h * 0.7, 'button', function () {
-                resetAllValues();
                 tweenOut.start();
+                resetAllValues();
             }, undefined, 2, 1, 0, 1, finalScoreContainer);
             againButton.scale.set(3);
             againButton.anchor.set(0.5, 0);
@@ -270,6 +270,8 @@ var monoloco;
                 tempMangoSprite.anchor.set(0.5);
                 tempMangoSprite.width = 50;
                 tempMangoSprite.height = 50;
+                var tween = core.game.add.tween(tempMangoSprite);
+                tween.to({ width: 80, height: 80 }, 1000, undefined, true, 0, 1, true);
                 tempMangoSprite.name = "Mango_" + (i + 1);
                 core.game.physics.arcade.enable(tempMangoSprite);
                 mangoSpriteArray.push(tempMangoSprite);

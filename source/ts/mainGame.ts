@@ -240,8 +240,8 @@ namespace monoloco.core {
         });
 
         let againButton = game.add.button(w * 0.35, h * 0.7, 'button', () => {
-            resetAllValues();
             tweenOut.start();
+            resetAllValues();
         }, undefined, 2, 1, 0, 1, finalScoreContainer);
         againButton.scale.set(3);
         againButton.anchor.set(0.5, 0);
@@ -287,6 +287,8 @@ namespace monoloco.core {
             tempMangoSprite.anchor.set(0.5);
             tempMangoSprite.width = 50;
             tempMangoSprite.height = 50;
+            let tween = game.add.tween(tempMangoSprite);
+            tween.to({ width: 80, height: 80 }, 1000, undefined, true, 0, 1, true);
             tempMangoSprite.name = "Mango_" + (i + 1);
             game.physics.arcade.enable(tempMangoSprite);
 
