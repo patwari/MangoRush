@@ -32,9 +32,10 @@ namespace monoloco.core {
     let defaultStonePosX: number;
     let defaultStonePosY: number;
     let scoreboardContainer: Phaser.Group;
+    let score: Phaser.BitmapText;
+    let stoneLeft: Phaser.BitmapText;
     let mangoHitCount: number = 0;
-    let attemptsCount: number = 0;
-    let score: number = 0;
+    let stoneLeftCount: number = gameConstants.INIT_STONE_COUNT;
 
     // Preload of the default state. It is used to load all needed resources
     function preload(): void {
@@ -46,6 +47,8 @@ namespace monoloco.core {
         game.load.image("Tree", "../../res/images/Tree.png");
         game.load.image("Boy", "../../res/images/Boy.png");
         game.load.image("Stone", "../../res/images/Stone.png");
+        game.load.bitmapFont('desyrel', '../res/font/desyrel.png', '../res/font/desyrel.xml');
+        game.load.spritesheet('button', '../../res/images/buttons.png', 193, 71);
     }
 
     // Create function creates the layout 
@@ -105,28 +108,7 @@ namespace monoloco.core {
         mangoContainer = new Phaser.Group(game, mainContainer, "mangoContainer");
         mangoContainer.x = spriteArray.treeSprite.left + spriteArray.treeSprite.width * 0.1;
         mangoContainer.y = spriteArray.treeSprite.top + spriteArray.treeSprite.height * 0.1;
-
-        for (let i = 0; i < gameConstants.INIT_MANGO_NUM; i++) {
-            // mangoes will be randomly positioned
-            let p = new Phaser.Point();
-            let tempMangoSprite: Phaser.Sprite = new Phaser.Sprite(game, 0, 0, "Mango");
-            tempMangoSprite.x = Math.floor(Math.random() * spriteArray.treeSprite.width * 0.8);
-            if (tempMangoSprite.x < spriteArray.treeSprite.width * 0.5) {
-                tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * tempMangoSprite.x);
-            }
-            else {
-                tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * (spriteArray.treeSprite.width - tempMangoSprite.x));
-            }
-            tempMangoSprite.anchor.set(0.5);
-            tempMangoSprite.width = 50;
-            tempMangoSprite.height = 50;
-            tempMangoSprite.name = "Mango_" + (i + 1);
-            game.physics.arcade.enable(tempMangoSprite);
-
-            mangoSpriteArray.push(tempMangoSprite);
-            mangoContainer.addChild(tempMangoSprite);
-        }
-        mainContainer.addChild(mangoContainer);
+        createMangoes();
 
         line = new Phaser.Graphics(game);
         line.lineStyle(10, 0xFF0000, 0.9);
@@ -142,6 +124,17 @@ namespace monoloco.core {
         outerRect.beginFill(0xCCCCCC);
         outerRect.drawRoundedRect(0, 0, 300, 200, 50);
         outerRect.endFill();
+        let scoreLabel = new Phaser.BitmapText(game, 20, 20, 'desyrel', "Score: ", 60);
+        scoreboardContainer.addChild(scoreLabel);
+        score = new Phaser.BitmapText(game, 280, 20, 'desyrel', "0", 60);
+        score.anchor.set(1, 0);
+        scoreboardContainer.addChild(score);
+        let stoneLeftLabel = new Phaser.BitmapText(game, 20, 120, 'desyrel', "Left: ", 60);
+        scoreboardContainer.addChild(stoneLeftLabel);
+        stoneLeft = new Phaser.BitmapText(game, 280, 120, 'desyrel', "3", 60);
+        stoneLeft.anchor.set(1, 0);
+        scoreboardContainer.addChild(stoneLeft);
+
 
         // Add event listener to stone
         spriteArray.stoneSprite.events.onInputDown.add(() => {
@@ -153,7 +146,8 @@ namespace monoloco.core {
                 line.clear();
                 isStoneDragging = false;
                 isStoneReleased = true;
-                attemptsCount++;
+                stoneLeftCount--;
+                stoneLeft.setText(stoneLeftCount.toString());
 
                 let angle = Phaser.Point.angle(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
                 angle = angle - Math.PI;
@@ -206,6 +200,7 @@ namespace monoloco.core {
         tempSprite.body.velocity.y = gameConstants.MANGO_DROP_VELOCITY;
 
         mangoHitCount++;
+        score.setText((10 * mangoHitCount * gameConstants.VALUE_PER_MANGO / gameConstants.INIT_MANGO_NUM).toString());
     }
 
     function checkIfStoneOut(): void {
@@ -213,6 +208,77 @@ namespace monoloco.core {
             spriteArray.stoneSprite.body.reset(defaultStonePosX, defaultStonePosY);
             spriteArray.stoneSprite.x = defaultStonePosX;
             spriteArray.stoneSprite.y = defaultStonePosY;
+            if (stoneLeftCount === 0) {
+                showFinalScoreBoard();
+            }
+        }
+    }
+
+    function showFinalScoreBoard(): void {
+        let w = gameConstants.GAME_WIDTH;
+        let h = gameConstants.GAME_HEIGHT;
+        let finalScoreContainer: Phaser.Group = game.add.group(mainContainer, "finalScoreContainer");
+        finalScoreContainer.pivot.set(w * 0.5, h * 0.5);
+        finalScoreContainer.position.set(w * 0.5, h * 0.5);
+
+        let finalRect: Phaser.Graphics = game.add.graphics(0, 0, finalScoreContainer);
+        finalRect.lineStyle(10, 0xAAAAAA, 0.8);
+        finalRect.beginFill(0xCCCCCC);
+        finalRect.drawRoundedRect(0, 0, w, h, h * 0.2);
+        finalRect.endFill();
+
+        let greetMsg = new Phaser.BitmapText(game, w * 0.5, h * 0.25, "desyrel", "---FINAL SCORE---", 120);
+        greetMsg.anchor.set(0.5);
+        finalScoreContainer.addChild(greetMsg);
+        let finalScore = new Phaser.BitmapText(game, w * 0.5, h * 0.5, "desyrel", (10 * mangoHitCount * gameConstants.VALUE_PER_MANGO / gameConstants.INIT_MANGO_NUM).toString(), 350);
+        finalScore.anchor.set(0.5);
+        finalScoreContainer.addChild(finalScore);
+        let tweenIn = game.add.tween(finalScoreContainer.scale);
+        tweenIn.from({ x: 0, y: 0 }, 1500, undefined, true);
+
+        let tweenOut = game.add.tween(finalScoreContainer.scale);
+        tweenOut.to({ x: 0, y: 0 }, 1500);
+        tweenOut.onComplete.add(() => {
+            finalScoreContainer.destroy();
+        });
+
+        let againButton = game.add.button(w * 0.35, h * 0.7, 'button', () => {
+            resetAllValues();
+            tweenOut.start();
+        }, undefined, 2, 1, 0, 1, finalScoreContainer);
+        againButton.scale.set(3);
+        againButton.anchor.set(0.5, 0);
+
+    }
+
+    function resetAllValues(): void {
+
+    }
+
+    function onExitButtonClick(): void {
+
+    }
+
+    function createMangoes(): void {
+        for (let i = 0; i < gameConstants.INIT_MANGO_NUM; i++) {
+            // mangoes will be randomly positioned
+            let p = new Phaser.Point();
+            let tempMangoSprite: Phaser.Sprite = new Phaser.Sprite(game, 0, 0, "Mango");
+            tempMangoSprite.x = Math.floor(Math.random() * spriteArray.treeSprite.width * 0.8);
+            if (tempMangoSprite.x < spriteArray.treeSprite.width * 0.5) {
+                tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * tempMangoSprite.x);
+            }
+            else {
+                tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * (spriteArray.treeSprite.width - tempMangoSprite.x));
+            }
+            tempMangoSprite.anchor.set(0.5);
+            tempMangoSprite.width = 50;
+            tempMangoSprite.height = 50;
+            tempMangoSprite.name = "Mango_" + (i + 1);
+            game.physics.arcade.enable(tempMangoSprite);
+
+            mangoSpriteArray.push(tempMangoSprite);
+            mangoContainer.addChild(tempMangoSprite);
         }
     }
 

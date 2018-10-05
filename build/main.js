@@ -12,6 +12,8 @@ var monoloco;
             BASE_DISTANCE: 170,
             COLLISION_DISTANCE: 70,
             MANGO_DROP_VELOCITY: 500,
+            INIT_STONE_COUNT: 3,
+            VALUE_PER_MANGO: 10
         };
     })(core = monoloco.core || (monoloco.core = {}));
 })(monoloco || (monoloco = {}));
@@ -49,9 +51,10 @@ var monoloco;
         var defaultStonePosX;
         var defaultStonePosY;
         var scoreboardContainer;
+        var score;
+        var stoneLeft;
         var mangoHitCount = 0;
-        var attemptsCount = 0;
-        var score = 0;
+        var stoneLeftCount = core.gameConstants.INIT_STONE_COUNT;
         // Preload of the default state. It is used to load all needed resources
         function preload() {
             core.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
@@ -62,6 +65,8 @@ var monoloco;
             core.game.load.image("Tree", "../../res/images/Tree.png");
             core.game.load.image("Boy", "../../res/images/Boy.png");
             core.game.load.image("Stone", "../../res/images/Stone.png");
+            core.game.load.bitmapFont('desyrel', '../res/font/desyrel.png', '../res/font/desyrel.xml');
+            core.game.load.spritesheet('button', '../../res/images/buttons.png', 193, 71);
         }
         // Create function creates the layout 
         function create() {
@@ -111,26 +116,7 @@ var monoloco;
             mangoContainer = new Phaser.Group(core.game, core.mainContainer, "mangoContainer");
             mangoContainer.x = spriteArray.treeSprite.left + spriteArray.treeSprite.width * 0.1;
             mangoContainer.y = spriteArray.treeSprite.top + spriteArray.treeSprite.height * 0.1;
-            for (var i = 0; i < core.gameConstants.INIT_MANGO_NUM; i++) {
-                // mangoes will be randomly positioned
-                var p = new Phaser.Point();
-                var tempMangoSprite = new Phaser.Sprite(core.game, 0, 0, "Mango");
-                tempMangoSprite.x = Math.floor(Math.random() * spriteArray.treeSprite.width * 0.8);
-                if (tempMangoSprite.x < spriteArray.treeSprite.width * 0.5) {
-                    tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * tempMangoSprite.x);
-                }
-                else {
-                    tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * (spriteArray.treeSprite.width - tempMangoSprite.x));
-                }
-                tempMangoSprite.anchor.set(0.5);
-                tempMangoSprite.width = 50;
-                tempMangoSprite.height = 50;
-                tempMangoSprite.name = "Mango_" + (i + 1);
-                core.game.physics.arcade.enable(tempMangoSprite);
-                mangoSpriteArray.push(tempMangoSprite);
-                mangoContainer.addChild(tempMangoSprite);
-            }
-            core.mainContainer.addChild(mangoContainer);
+            createMangoes();
             line = new Phaser.Graphics(core.game);
             line.lineStyle(10, 0xFF0000, 0.9);
             core.mainContainer.addChild(line);
@@ -143,6 +129,16 @@ var monoloco;
             outerRect.beginFill(0xCCCCCC);
             outerRect.drawRoundedRect(0, 0, 300, 200, 50);
             outerRect.endFill();
+            var scoreLabel = new Phaser.BitmapText(core.game, 20, 20, 'desyrel', "Score: ", 60);
+            scoreboardContainer.addChild(scoreLabel);
+            score = new Phaser.BitmapText(core.game, 280, 20, 'desyrel', "0", 60);
+            score.anchor.set(1, 0);
+            scoreboardContainer.addChild(score);
+            var stoneLeftLabel = new Phaser.BitmapText(core.game, 20, 120, 'desyrel', "Left: ", 60);
+            scoreboardContainer.addChild(stoneLeftLabel);
+            stoneLeft = new Phaser.BitmapText(core.game, 280, 120, 'desyrel', "3", 60);
+            stoneLeft.anchor.set(1, 0);
+            scoreboardContainer.addChild(stoneLeft);
             // Add event listener to stone
             spriteArray.stoneSprite.events.onInputDown.add(function () {
                 isStoneDragging = true;
@@ -152,7 +148,8 @@ var monoloco;
                     line.clear();
                     isStoneDragging = false;
                     isStoneReleased = true;
-                    attemptsCount++;
+                    stoneLeftCount--;
+                    stoneLeft.setText(stoneLeftCount.toString());
                     var angle = Phaser.Point.angle(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
                     angle = angle - Math.PI;
                     var distance = Phaser.Point.distance(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
@@ -199,12 +196,72 @@ var monoloco;
             });
             tempSprite.body.velocity.y = core.gameConstants.MANGO_DROP_VELOCITY;
             mangoHitCount++;
+            score.setText((10 * mangoHitCount * core.gameConstants.VALUE_PER_MANGO / core.gameConstants.INIT_MANGO_NUM).toString());
         }
         function checkIfStoneOut() {
             if (spriteArray.stoneSprite.x > core.gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > core.gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < 0 || spriteArray.stoneSprite.y < 0) {
                 spriteArray.stoneSprite.body.reset(defaultStonePosX, defaultStonePosY);
                 spriteArray.stoneSprite.x = defaultStonePosX;
                 spriteArray.stoneSprite.y = defaultStonePosY;
+                if (stoneLeftCount === 0) {
+                    showFinalScoreBoard();
+                }
+            }
+        }
+        function showFinalScoreBoard() {
+            var w = core.gameConstants.GAME_WIDTH;
+            var h = core.gameConstants.GAME_HEIGHT;
+            var finalScoreContainer = core.game.add.group(core.mainContainer, "finalScoreContainer");
+            finalScoreContainer.pivot.set(w * 0.5, h * 0.5);
+            finalScoreContainer.position.set(w * 0.5, h * 0.5);
+            var finalRect = core.game.add.graphics(0, 0, finalScoreContainer);
+            finalRect.lineStyle(10, 0xAAAAAA, 0.8);
+            finalRect.beginFill(0xCCCCCC);
+            finalRect.drawRoundedRect(0, 0, w, h, h * 0.2);
+            finalRect.endFill();
+            var greetMsg = new Phaser.BitmapText(core.game, w * 0.5, h * 0.25, "desyrel", "---FINAL SCORE---", 120);
+            greetMsg.anchor.set(0.5);
+            finalScoreContainer.addChild(greetMsg);
+            var finalScore = new Phaser.BitmapText(core.game, w * 0.5, h * 0.5, "desyrel", (10 * mangoHitCount * core.gameConstants.VALUE_PER_MANGO / core.gameConstants.INIT_MANGO_NUM).toString(), 350);
+            finalScore.anchor.set(0.5);
+            finalScoreContainer.addChild(finalScore);
+            var tweenIn = core.game.add.tween(finalScoreContainer.scale);
+            tweenIn.from({ x: 0, y: 0 }, 1500, undefined, true);
+            var tweenOut = core.game.add.tween(finalScoreContainer.scale);
+            tweenOut.to({ x: 0, y: 0 }, 1500);
+            tweenOut.onComplete.add(function () {
+                finalScoreContainer.destroy();
+            });
+            var againButton = core.game.add.button(w * 0.35, h * 0.7, 'button', function () {
+                resetAllValues();
+                tweenOut.start();
+            }, undefined, 2, 1, 0, 1, finalScoreContainer);
+            againButton.scale.set(3);
+            againButton.anchor.set(0.5, 0);
+        }
+        function resetAllValues() {
+        }
+        function onExitButtonClick() {
+        }
+        function createMangoes() {
+            for (var i = 0; i < core.gameConstants.INIT_MANGO_NUM; i++) {
+                // mangoes will be randomly positioned
+                var p = new Phaser.Point();
+                var tempMangoSprite = new Phaser.Sprite(core.game, 0, 0, "Mango");
+                tempMangoSprite.x = Math.floor(Math.random() * spriteArray.treeSprite.width * 0.8);
+                if (tempMangoSprite.x < spriteArray.treeSprite.width * 0.5) {
+                    tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * tempMangoSprite.x);
+                }
+                else {
+                    tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * (spriteArray.treeSprite.width - tempMangoSprite.x));
+                }
+                tempMangoSprite.anchor.set(0.5);
+                tempMangoSprite.width = 50;
+                tempMangoSprite.height = 50;
+                tempMangoSprite.name = "Mango_" + (i + 1);
+                core.game.physics.arcade.enable(tempMangoSprite);
+                mangoSpriteArray.push(tempMangoSprite);
+                mangoContainer.addChild(tempMangoSprite);
             }
         }
         function wInPerc(num) {

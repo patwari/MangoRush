@@ -8,5 +8,7 @@ namespace monoloco.core {
         BASE_DISTANCE: 170,
         COLLISION_DISTANCE: 70,
         MANGO_DROP_VELOCITY: 500,
+        INIT_STONE_COUNT: 3,
+        VALUE_PER_MANGO: 10
     }
 }
