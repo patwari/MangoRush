@@ -26,10 +26,15 @@ namespace monoloco.core {
     let mangoSpriteArray: Array<Phaser.Sprite> = [];
     export let mainContainer: Phaser.Group;
     let line: Phaser.Graphics;
+    let mangoContainer: Phaser.Group;
     let isStoneDragging: boolean = false;
     let isStoneReleased: boolean = false;
     let defaultStonePosX: number;
     let defaultStonePosY: number;
+    let scoreboardContainer: Phaser.Group;
+    let mangoHitCount: number = 0;
+    let attemptsCount: number = 0;
+    let score: number = 0;
 
     // Preload of the default state. It is used to load all needed resources
     function preload(): void {
@@ -87,24 +92,24 @@ namespace monoloco.core {
         defaultStonePosX = spriteArray.stoneSprite.x;
         defaultStonePosY = spriteArray.stoneSprite.y;
 
-        // game.physics.arcade.enable(spriteArray.stoneSprite);
-
         mainContainer.addChild(spriteArray.skySprite);
         mainContainer.addChild(spriteArray.groundSprite);
         mainContainer.addChild(spriteArray.treeSprite);
         mainContainer.addChild(spriteArray.boySprite);
         mainContainer.addChild(spriteArray.stoneSprite);
 
+        game.physics.enable(spriteArray.stoneSprite, Phaser.Physics.ARCADE);
+
         // A container to store mangoes.
         // Convenient, so that we don't have to worry about positioning anymore
-        let mangoContainer: Phaser.Group = new Phaser.Group(game, mainContainer, "mangoContainer");
+        mangoContainer = new Phaser.Group(game, mainContainer, "mangoContainer");
         mangoContainer.x = spriteArray.treeSprite.left + spriteArray.treeSprite.width * 0.1;
         mangoContainer.y = spriteArray.treeSprite.top + spriteArray.treeSprite.height * 0.1;
 
         for (let i = 0; i < gameConstants.INIT_MANGO_NUM; i++) {
             // mangoes will be randomly positioned
             let p = new Phaser.Point();
-            let tempMangoSprite = new Phaser.Sprite(game, 0, 0, "Mango");
+            let tempMangoSprite: Phaser.Sprite = new Phaser.Sprite(game, 0, 0, "Mango");
             tempMangoSprite.x = Math.floor(Math.random() * spriteArray.treeSprite.width * 0.8);
             if (tempMangoSprite.x < spriteArray.treeSprite.width * 0.5) {
                 tempMangoSprite.y = spriteArray.treeSprite.height * 0.5 - Math.floor(Math.random() * tempMangoSprite.x);
@@ -116,6 +121,8 @@ namespace monoloco.core {
             tempMangoSprite.width = 50;
             tempMangoSprite.height = 50;
             tempMangoSprite.name = "Mango_" + (i + 1);
+            game.physics.arcade.enable(tempMangoSprite);
+
             mangoSpriteArray.push(tempMangoSprite);
             mangoContainer.addChild(tempMangoSprite);
         }
@@ -125,6 +132,16 @@ namespace monoloco.core {
         line.lineStyle(10, 0xFF0000, 0.9);
 
         mainContainer.addChild(line);
+
+        // add scoreboard
+        scoreboardContainer = game.add.group(mainContainer, "scoreboardContainer");
+        scoreboardContainer.x = 80;
+        scoreboardContainer.y = 50;
+        let outerRect: Phaser.Graphics = game.add.graphics(0, 0, scoreboardContainer);
+        outerRect.lineStyle(5, 0x555555, 0.8);
+        outerRect.beginFill(0xCCCCCC);
+        outerRect.drawRoundedRect(0, 0, 300, 200, 50);
+        outerRect.endFill();
         // Add event listener to stone
         spriteArray.stoneSprite.events.onInputDown.add(() => {
             isStoneDragging = true;
@@ -132,29 +149,69 @@ namespace monoloco.core {
 
         spriteArray.stoneSprite.events.onInputUp.add(() => {
             if (isStoneDragging) {
+                line.clear();
                 isStoneDragging = false;
                 isStoneReleased = true;
+                attemptsCount++;
+
+                let angle = Phaser.Point.angle(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
+                angle = angle - Math.PI;
+                let distance = Phaser.Point.distance(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
+                distance = distance / gameConstants.BASE_DISTANCE;
+                let initVelocity = gameConstants.MAX_VELOCITY * distance;
+                // console.log("initVel: " + initVelocity);
+                spriteArray.stoneSprite.body.acceleration.y = gameConstants.INIT_ACCEL;
+                spriteArray.stoneSprite.body.velocity.x = initVelocity * Math.cos(angle);
+                spriteArray.stoneSprite.body.velocity.y = initVelocity * Math.sin(angle);
             }
-        })
+        });
 
     }
 
     function update(): void {
-
         if (isStoneDragging) {
             line.clear();
             line.lineStyle(5, 0xFF0000, 0.9);
-
             line.moveTo(defaultStonePosX, defaultStonePosY);
             line.lineTo(spriteArray.stoneSprite.x, spriteArray.stoneSprite.y);
-            let angle = Phaser.Point.angle(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
-
-
             spriteArray.stoneSprite.bringToTop();
         }
 
         if (isStoneReleased) {
+            for (let i = 0; i < gameConstants.INIT_MANGO_NUM; i++) {
+                if (mangoSpriteArray[i].visible === false)
+                    continue;
+                let distance = Phaser.Point.distance(spriteArray.stoneSprite.position, new Phaser.Point(mangoSpriteArray[i].x + mangoContainer.x, mangoSpriteArray[i].y + mangoContainer.y));
+                if (distance < gameConstants.COLLISION_DISTANCE) {
+                    onCollision(i);
+                }
+            }
+        }
+        checkIfStoneOut();
+    }
 
+    function onCollision(pos: number): void {
+        mangoSpriteArray[pos].body.velocity.y = gameConstants.MANGO_DROP_VELOCITY;
+        mangoSpriteArray[pos].visible = false;
+        let tempSprite = game.add.sprite(mangoSpriteArray[pos].x + mangoContainer.x, mangoContainer.y + mangoSpriteArray[pos].y, "Mango", undefined, mainContainer);
+        tempSprite.width = 50;
+        tempSprite.height = 50;
+        tempSprite.anchor.set(0.5);
+        game.physics.arcade.enable(tempSprite);
+        tempSprite.checkWorldBounds = true;
+        tempSprite.events.onOutOfBounds.add(() => {
+            tempSprite.destroy();
+        });
+        tempSprite.body.velocity.y = gameConstants.MANGO_DROP_VELOCITY;
+
+        mangoHitCount++;
+    }
+
+    function checkIfStoneOut(): void {
+        if (spriteArray.stoneSprite.x > gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < 0 || spriteArray.stoneSprite.y < 0) {
+            spriteArray.stoneSprite.body.reset(defaultStonePosX, defaultStonePosY);
+            spriteArray.stoneSprite.x = defaultStonePosX;
+            spriteArray.stoneSprite.y = defaultStonePosY;
         }
     }
 
@@ -165,45 +222,3 @@ namespace monoloco.core {
         return (num / 100) * core.gameConstants.GAME_HEIGHT;
     }
 }
-
-
-// var game, bmd, DemoState;
-// var line, graphics;
-
-// function DemoState() { }
-
-// DemoState.prototype.preload = function () { };
-
-// DemoState.prototype.create = function () {
-//     game.stage.setBackgroundColor(0x333333);
-
-//     bmd = game.add.bitmapData(400, 400);
-//     bmd.ctx.strokeStyle = 'rgba(0, 255, 200, 1)';
-//     bmd.ctx.lineWidth = 20;
-//     bmd.ctx.lineCap = "round";
-//     game.add.sprite(0, 0, bmd);
-
-//     // http://www.html5gamedevs.com/topic/30063-setting-the-color-and-width-of-a-phaser-line/#comment-172589
-//     line = new Phaser.Line(0, 0, 100, 100);
-//     graphics = game.add.graphics(200, 200);
-//     // graphics = game.add.graphics(line.start.x, line.start.y);
-//     graphics.lineStyle(10, 0xffd900, 1);
-//     graphics.moveTo(line.start.x, line.start.y);
-//     graphics.lineTo(line.end.x, line.end.y);
-//     graphics.endFill();
-// };
-
-// DemoState.prototype.update = function () {
-//     bmd.clear();
-//     bmd.ctx.beginPath();
-//     bmd.ctx.moveTo(200, 200);
-//     bmd.ctx.lineTo(game.input.x, game.input.y);
-//     bmd.ctx.stroke();
-//     bmd.render();
-// };
-
-// window.onload = function () {
-//     game = new Phaser.Game(400, 400, Phaser.AUTO, "phaser-demo");
-//     game.state.add("demo", DemoState);
-//     game.state.start("demo");
-// };

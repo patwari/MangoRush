@@ -7,6 +7,11 @@ var monoloco;
             INIT_MANGO_NUM: 10,
             GAME_WIDTH: 1920,
             GAME_HEIGHT: 1080,
+            MAX_VELOCITY: 1100,
+            INIT_ACCEL: 550,
+            BASE_DISTANCE: 170,
+            COLLISION_DISTANCE: 70,
+            MANGO_DROP_VELOCITY: 500,
         };
     })(core = monoloco.core || (monoloco.core = {}));
 })(monoloco || (monoloco = {}));
@@ -38,10 +43,15 @@ var monoloco;
         var spriteArray = {};
         var mangoSpriteArray = [];
         var line;
+        var mangoContainer;
         var isStoneDragging = false;
         var isStoneReleased = false;
         var defaultStonePosX;
         var defaultStonePosY;
+        var scoreboardContainer;
+        var mangoHitCount = 0;
+        var attemptsCount = 0;
+        var score = 0;
         // Preload of the default state. It is used to load all needed resources
         function preload() {
             core.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
@@ -90,15 +100,15 @@ var monoloco;
             spriteArray.stoneSprite.input.enableDrag(true);
             defaultStonePosX = spriteArray.stoneSprite.x;
             defaultStonePosY = spriteArray.stoneSprite.y;
-            // game.physics.arcade.enable(spriteArray.stoneSprite);
             core.mainContainer.addChild(spriteArray.skySprite);
             core.mainContainer.addChild(spriteArray.groundSprite);
             core.mainContainer.addChild(spriteArray.treeSprite);
             core.mainContainer.addChild(spriteArray.boySprite);
             core.mainContainer.addChild(spriteArray.stoneSprite);
+            core.game.physics.enable(spriteArray.stoneSprite, Phaser.Physics.ARCADE);
             // A container to store mangoes.
             // Convenient, so that we don't have to worry about positioning anymore
-            var mangoContainer = new Phaser.Group(core.game, core.mainContainer, "mangoContainer");
+            mangoContainer = new Phaser.Group(core.game, core.mainContainer, "mangoContainer");
             mangoContainer.x = spriteArray.treeSprite.left + spriteArray.treeSprite.width * 0.1;
             mangoContainer.y = spriteArray.treeSprite.top + spriteArray.treeSprite.height * 0.1;
             for (var i = 0; i < core.gameConstants.INIT_MANGO_NUM; i++) {
@@ -116,6 +126,7 @@ var monoloco;
                 tempMangoSprite.width = 50;
                 tempMangoSprite.height = 50;
                 tempMangoSprite.name = "Mango_" + (i + 1);
+                core.game.physics.arcade.enable(tempMangoSprite);
                 mangoSpriteArray.push(tempMangoSprite);
                 mangoContainer.addChild(tempMangoSprite);
             }
@@ -123,14 +134,34 @@ var monoloco;
             line = new Phaser.Graphics(core.game);
             line.lineStyle(10, 0xFF0000, 0.9);
             core.mainContainer.addChild(line);
+            // add scoreboard
+            scoreboardContainer = core.game.add.group(core.mainContainer, "scoreboardContainer");
+            scoreboardContainer.x = 80;
+            scoreboardContainer.y = 50;
+            var outerRect = core.game.add.graphics(0, 0, scoreboardContainer);
+            outerRect.lineStyle(5, 0x555555, 0.8);
+            outerRect.beginFill(0xCCCCCC);
+            outerRect.drawRoundedRect(0, 0, 300, 200, 50);
+            outerRect.endFill();
             // Add event listener to stone
             spriteArray.stoneSprite.events.onInputDown.add(function () {
                 isStoneDragging = true;
             });
             spriteArray.stoneSprite.events.onInputUp.add(function () {
                 if (isStoneDragging) {
+                    line.clear();
                     isStoneDragging = false;
                     isStoneReleased = true;
+                    attemptsCount++;
+                    var angle = Phaser.Point.angle(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
+                    angle = angle - Math.PI;
+                    var distance = Phaser.Point.distance(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
+                    distance = distance / core.gameConstants.BASE_DISTANCE;
+                    var initVelocity = core.gameConstants.MAX_VELOCITY * distance;
+                    // console.log("initVel: " + initVelocity);
+                    spriteArray.stoneSprite.body.acceleration.y = core.gameConstants.INIT_ACCEL;
+                    spriteArray.stoneSprite.body.velocity.x = initVelocity * Math.cos(angle);
+                    spriteArray.stoneSprite.body.velocity.y = initVelocity * Math.sin(angle);
                 }
             });
         }
@@ -140,10 +171,40 @@ var monoloco;
                 line.lineStyle(5, 0xFF0000, 0.9);
                 line.moveTo(defaultStonePosX, defaultStonePosY);
                 line.lineTo(spriteArray.stoneSprite.x, spriteArray.stoneSprite.y);
-                var angle = Phaser.Point.angle(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
                 spriteArray.stoneSprite.bringToTop();
             }
             if (isStoneReleased) {
+                for (var i = 0; i < core.gameConstants.INIT_MANGO_NUM; i++) {
+                    if (mangoSpriteArray[i].visible === false)
+                        continue;
+                    var distance = Phaser.Point.distance(spriteArray.stoneSprite.position, new Phaser.Point(mangoSpriteArray[i].x + mangoContainer.x, mangoSpriteArray[i].y + mangoContainer.y));
+                    if (distance < core.gameConstants.COLLISION_DISTANCE) {
+                        onCollision(i);
+                    }
+                }
+            }
+            checkIfStoneOut();
+        }
+        function onCollision(pos) {
+            mangoSpriteArray[pos].body.velocity.y = core.gameConstants.MANGO_DROP_VELOCITY;
+            mangoSpriteArray[pos].visible = false;
+            var tempSprite = core.game.add.sprite(mangoSpriteArray[pos].x + mangoContainer.x, mangoContainer.y + mangoSpriteArray[pos].y, "Mango", undefined, core.mainContainer);
+            tempSprite.width = 50;
+            tempSprite.height = 50;
+            tempSprite.anchor.set(0.5);
+            core.game.physics.arcade.enable(tempSprite);
+            tempSprite.checkWorldBounds = true;
+            tempSprite.events.onOutOfBounds.add(function () {
+                tempSprite.destroy();
+            });
+            tempSprite.body.velocity.y = core.gameConstants.MANGO_DROP_VELOCITY;
+            mangoHitCount++;
+        }
+        function checkIfStoneOut() {
+            if (spriteArray.stoneSprite.x > core.gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > core.gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < 0 || spriteArray.stoneSprite.y < 0) {
+                spriteArray.stoneSprite.body.reset(defaultStonePosX, defaultStonePosY);
+                spriteArray.stoneSprite.x = defaultStonePosX;
+                spriteArray.stoneSprite.y = defaultStonePosY;
             }
         }
         function wInPerc(num) {
@@ -154,36 +215,21 @@ var monoloco;
         }
     })(core = monoloco.core || (monoloco.core = {}));
 })(monoloco || (monoloco = {}));
-// var game, bmd, DemoState;
-// var line, graphics;
-// function DemoState() { }
-// DemoState.prototype.preload = function () { };
-// DemoState.prototype.create = function () {
-//     game.stage.setBackgroundColor(0x333333);
-//     bmd = game.add.bitmapData(400, 400);
-//     bmd.ctx.strokeStyle = 'rgba(0, 255, 200, 1)';
-//     bmd.ctx.lineWidth = 20;
-//     bmd.ctx.lineCap = "round";
-//     game.add.sprite(0, 0, bmd);
-//     // http://www.html5gamedevs.com/topic/30063-setting-the-color-and-width-of-a-phaser-line/#comment-172589
-//     line = new Phaser.Line(0, 0, 100, 100);
-//     graphics = game.add.graphics(200, 200);
-//     // graphics = game.add.graphics(line.start.x, line.start.y);
-//     graphics.lineStyle(10, 0xffd900, 1);
-//     graphics.moveTo(line.start.x, line.start.y);
-//     graphics.lineTo(line.end.x, line.end.y);
-//     graphics.endFill();
-// };
-// DemoState.prototype.update = function () {
-//     bmd.clear();
-//     bmd.ctx.beginPath();
-//     bmd.ctx.moveTo(200, 200);
-//     bmd.ctx.lineTo(game.input.x, game.input.y);
-//     bmd.ctx.stroke();
-//     bmd.render();
-// };
-// window.onload = function () {
-//     game = new Phaser.Game(400, 400, Phaser.AUTO, "phaser-demo");
-//     game.state.add("demo", DemoState);
-//     game.state.start("demo");
-// };
+var monoloco;
+(function (monoloco) {
+    var core;
+    (function (core) {
+        var utils = /** @class */ (function () {
+            function utils() {
+            }
+            utils.degToRad = function (deg) {
+                return (deg * Math.PI / 180);
+            };
+            utils.radToDeg = function (rad) {
+                return (rad * 180 / Math.PI);
+            };
+            return utils;
+        }());
+        core.utils = utils;
+    })(core = monoloco.core || (monoloco.core = {}));
+})(monoloco || (monoloco = {}));
