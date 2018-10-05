@@ -142,6 +142,7 @@ namespace monoloco.core {
         outerRect.beginFill(0xCCCCCC);
         outerRect.drawRoundedRect(0, 0, 300, 200, 50);
         outerRect.endFill();
+
         // Add event listener to stone
         spriteArray.stoneSprite.events.onInputDown.add(() => {
             isStoneDragging = true;
