@@ -1,6 +1,6 @@
 /// <reference path="interfaces.ts" />
 /**
- * Prefer to put modules into namespaces
+ * I Prefer to put modules (game code blocks) into namespaces
  */
 namespace monoloco.core {
 
@@ -20,11 +20,12 @@ namespace monoloco.core {
 
     // Create the game
     export let game = new Phaser.Game(config);
+    // exporting the mainContainer for debugger purpose
+    export let mainContainer: Phaser.Group;
 
-    // Create an array to store key -> sprite pair
+    // Create an array to store << key -> sprite >> pair
     let spriteArray: spriteObj = {};
     let mangoSpriteArray: Array<Phaser.Sprite>;
-    export let mainContainer: Phaser.Group;
     let line: Phaser.Graphics;
     let mangoContainer: Phaser.Group;
     let isStoneDragging: boolean = false;
@@ -51,20 +52,23 @@ namespace monoloco.core {
         game.load.spritesheet('button', '../../res/images/buttons.png', 193, 71);
     }
 
-    // Create function creates the layout 
+    // Create function creates the layout. It's called once right after preload has loaded all the resources.
     function create(): void {
-        // Create a mainContainer which contains all the visible elements.
-        // It makes it easy to debug
+        // game settings
         game.physics.startSystem(Phaser.Physics.ARCADE);
-
         game.stage.width = core.gameConstants.GAME_WIDTH;
         game.stage.height = core.gameConstants.GAME_HEIGHT;
+
+        // Create a mainContainer which contains all the visible elements.
+        // It makes it easy to debug. All our blocks will be added to this main container
         mainContainer = new Phaser.Group(game, game.stage, "mainContainer", false);
         mainContainer.width = core.gameConstants.GAME_WIDTH;
         mainContainer.height = core.gameConstants.GAME_HEIGHT;
         // Resize the game container as size changes
         mainContainer.scale.set(Math.min(innerWidth / core.gameConstants.GAME_WIDTH, innerHeight / core.gameConstants.GAME_HEIGHT));
 
+
+        // create all needed sprites
         spriteArray.skySprite = new Phaser.Sprite(game, wInPerc(0), hInPerc(0), "Sky");
         spriteArray.skySprite.name = "Sky";
         spriteArray.skySprite.width = core.gameConstants.GAME_WIDTH;
@@ -95,16 +99,16 @@ namespace monoloco.core {
         defaultStonePosX = spriteArray.stoneSprite.x;
         defaultStonePosY = spriteArray.stoneSprite.y;
 
+        // add sprites to the mainContainer
         mainContainer.addChild(spriteArray.skySprite);
         mainContainer.addChild(spriteArray.groundSprite);
         mainContainer.addChild(spriteArray.treeSprite);
         mainContainer.addChild(spriteArray.boySprite);
         mainContainer.addChild(spriteArray.stoneSprite);
 
+        // enable ARCADE mode of PHYSICS for stone 
         game.physics.enable(spriteArray.stoneSprite, Phaser.Physics.ARCADE);
 
-        // A container to store mangoes.
-        // Convenient, so that we don't have to worry about positioning anymore
         createMangoes();
 
         line = new Phaser.Graphics(game);
@@ -131,7 +135,6 @@ namespace monoloco.core {
         stoneLeft = new Phaser.BitmapText(game, 280, 120, 'desyrel', "3", 60);
         stoneLeft.anchor.set(1, 0);
         scoreboardContainer.addChild(stoneLeft);
-
 
         // Add event listener to stone
         spriteArray.stoneSprite.events.onInputDown.add(() => {
@@ -160,7 +163,12 @@ namespace monoloco.core {
 
     }
 
+    /**
+     * Update function is called every frame of the game tick, ie every 16.67ms.
+     * Put all work here that needs to be done at all frames
+     */
     function update(): void {
+        // if stone is being dragged, create a line between the hand (defaultStone) and the current stone position
         if (isStoneDragging) {
             line.clear();
             line.lineStyle(5, 0xFF0000, 0.9);
@@ -169,6 +177,7 @@ namespace monoloco.core {
             spriteArray.stoneSprite.bringToTop();
         }
 
+        // when the stone has been released, check for collision and proceed accordingly
         if (isStoneReleased) {
             for (let i = 0; i < gameConstants.INIT_MANGO_NUM; i++) {
                 if (mangoSpriteArray[i].visible === false)
@@ -179,9 +188,15 @@ namespace monoloco.core {
                 }
             }
         }
+
         checkIfStoneOut();
     }
 
+    /**
+     * This function is called when there is any collision between stone and any of the mangoes.
+     * Here we hide the actual mango, and create dummy mango on the same position which falls and gets destroyed when goes out of boundary
+     * Also, we keep the mangoHitCount, and display the score accordingly
+     */
     function onCollision(pos: number): void {
         mangoSpriteArray[pos].body.velocity.y = gameConstants.MANGO_DROP_VELOCITY;
         mangoSpriteArray[pos].visible = false;
@@ -200,6 +215,11 @@ namespace monoloco.core {
         score.setText((10 * mangoHitCount * gameConstants.VALUE_PER_MANGO / gameConstants.INIT_MANGO_NUM).toString());
     }
 
+    /**
+     * This function is called every frame.
+     * Here we check if the stone is out the the boundary. If yes, we return it back to default position
+     * Also, if all the stones has been thrown, then display the final score
+     */
     function checkIfStoneOut(): void {
         if (spriteArray.stoneSprite.x > gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < 0 || spriteArray.stoneSprite.y < 0) {
             spriteArray.stoneSprite.body.reset(defaultStonePosX, defaultStonePosY);
@@ -211,6 +231,11 @@ namespace monoloco.core {
         }
     }
 
+    /**
+     * This function is called when the final score needs to be displayed.
+     * It creates a scoreboard, which gets destoyed on exit.
+     * It has a button for PLAY AGAIN, another for exit [TODO]
+     */
     function showFinalScoreBoard(): void {
         let w = gameConstants.GAME_WIDTH;
         let h = gameConstants.GAME_HEIGHT;
@@ -248,6 +273,10 @@ namespace monoloco.core {
 
     }
 
+    /**
+     * This function is called when PLAY AGAIN button is clicked right when final scoreboard has been displaued
+     * It resets all the values and re-created mangoes at random positions 
+     */
     function resetAllValues(): void {
         createMangoes();
         isStoneDragging = false;
@@ -259,12 +288,22 @@ namespace monoloco.core {
         stoneLeft.setText(stoneLeftCount.toString());
     }
 
+    /**
+     * This function will be called when the exit button is pressed when the final score board is displayed.[TODO]
+     * This function will exit destroy all the resources and close the game. 0
+     */
     function onExitButtonClick(): void {
-
+        // TODO
     }
 
+    /**
+     * This function re-creates mangoes at random places, also resets the mangoContainer, and mangoSpriteArray
+     */
     function createMangoes(): void {
+        // A container to store mangoes.
+        // Convenient, so that we don't have to worry about positioning anymore
         if (mangoContainer) {
+            // when replay. destroy all children of the previously created mangoContainer.
             mangoContainer.destroy(true, true);
         }
         mangoContainer = new Phaser.Group(game, mainContainer, "mangoContainer");
@@ -297,10 +336,18 @@ namespace monoloco.core {
         }
     }
 
-    function wInPerc(num: number): number {
-        return (num / 100) * core.gameConstants.GAME_WIDTH;
+    /**
+     * This function returns absolute position corresponding to pecentage of GAME_WIDTH 
+     * @param num number to convert
+     */
+    function wInPerc(perc: number): number {
+        return (perc / 100) * core.gameConstants.GAME_WIDTH;
     }
-    function hInPerc(num: number): number {
-        return (num / 100) * core.gameConstants.GAME_HEIGHT;
+
+    /**
+     * This function returns absolute position corresponding to pecentage of GAME_HEIGHT
+     */
+    function hInPerc(perc: number): number {
+        return (perc / 100) * core.gameConstants.GAME_HEIGHT;
     }
 }
