@@ -57,6 +57,7 @@ var monoloco;
         function create() {
             // Create a mainContainer which contains all the visible elements.
             // It makes it easy to debug
+            core.game.physics.startSystem(Phaser.Physics.ARCADE);
             core.game.stage.width = core.gameConstants.GAME_WIDTH;
             core.game.stage.height = core.gameConstants.GAME_HEIGHT;
             core.mainContainer = new Phaser.Group(core.game, core.game.stage, "mainContainer", false);
@@ -89,6 +90,7 @@ var monoloco;
             spriteArray.stoneSprite.input.enableDrag(true);
             defaultStonePosX = spriteArray.stoneSprite.x;
             defaultStonePosY = spriteArray.stoneSprite.y;
+            // game.physics.arcade.enable(spriteArray.stoneSprite);
             core.mainContainer.addChild(spriteArray.skySprite);
             core.mainContainer.addChild(spriteArray.groundSprite);
             core.mainContainer.addChild(spriteArray.treeSprite);
@@ -126,8 +128,10 @@ var monoloco;
                 isStoneDragging = true;
             });
             spriteArray.stoneSprite.events.onInputUp.add(function () {
-                isStoneDragging = false;
-                isStoneReleased = true;
+                if (isStoneDragging) {
+                    isStoneDragging = false;
+                    isStoneReleased = true;
+                }
             });
         }
         function update() {

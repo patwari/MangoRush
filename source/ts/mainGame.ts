@@ -47,6 +47,8 @@ namespace monoloco.core {
     function create(): void {
         // Create a mainContainer which contains all the visible elements.
         // It makes it easy to debug
+        game.physics.startSystem(Phaser.Physics.ARCADE);
+
         game.stage.width = core.gameConstants.GAME_WIDTH;
         game.stage.height = core.gameConstants.GAME_HEIGHT;
         mainContainer = new Phaser.Group(game, game.stage, "mainContainer", false);
@@ -84,6 +86,8 @@ namespace monoloco.core {
         spriteArray.stoneSprite.input.enableDrag(true);
         defaultStonePosX = spriteArray.stoneSprite.x;
         defaultStonePosY = spriteArray.stoneSprite.y;
+
+        // game.physics.arcade.enable(spriteArray.stoneSprite);
 
         mainContainer.addChild(spriteArray.skySprite);
         mainContainer.addChild(spriteArray.groundSprite);
@@ -127,8 +131,10 @@ namespace monoloco.core {
         });
 
         spriteArray.stoneSprite.events.onInputUp.add(() => {
-            isStoneDragging = false;
-            isStoneReleased = true;
+            if (isStoneDragging) {
+                isStoneDragging = false;
+                isStoneReleased = true;
+            }
         })
 
     }
@@ -142,6 +148,8 @@ namespace monoloco.core {
             line.moveTo(defaultStonePosX, defaultStonePosY);
             line.lineTo(spriteArray.stoneSprite.x, spriteArray.stoneSprite.y);
             let angle = Phaser.Point.angle(spriteArray.stoneSprite.position, new Phaser.Point(defaultStonePosX, defaultStonePosY));
+
+
             spriteArray.stoneSprite.bringToTop();
         }
 
