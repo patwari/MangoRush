@@ -43,7 +43,7 @@ var monoloco;
         core.game = new Phaser.Game(config);
         // Create an array to store key -> sprite pair
         var spriteArray = {};
-        var mangoSpriteArray = [];
+        var mangoSpriteArray;
         var line;
         var mangoContainer;
         var isStoneDragging = false;
@@ -113,9 +113,6 @@ var monoloco;
             core.game.physics.enable(spriteArray.stoneSprite, Phaser.Physics.ARCADE);
             // A container to store mangoes.
             // Convenient, so that we don't have to worry about positioning anymore
-            mangoContainer = new Phaser.Group(core.game, core.mainContainer, "mangoContainer");
-            mangoContainer.x = spriteArray.treeSprite.left + spriteArray.treeSprite.width * 0.1;
-            mangoContainer.y = spriteArray.treeSprite.top + spriteArray.treeSprite.height * 0.1;
             createMangoes();
             line = new Phaser.Graphics(core.game);
             line.lineStyle(10, 0xFF0000, 0.9);
@@ -240,10 +237,25 @@ var monoloco;
             againButton.anchor.set(0.5, 0);
         }
         function resetAllValues() {
+            createMangoes();
+            isStoneDragging = false;
+            isStoneReleased = false;
+            line.clear();
+            mangoHitCount = 0;
+            stoneLeftCount = core.gameConstants.INIT_STONE_COUNT;
+            score.setText(mangoHitCount.toString());
+            stoneLeft.setText(stoneLeftCount.toString());
         }
         function onExitButtonClick() {
         }
         function createMangoes() {
+            if (mangoContainer) {
+                mangoContainer.destroy(true, true);
+            }
+            mangoContainer = new Phaser.Group(core.game, core.mainContainer, "mangoContainer");
+            mangoContainer.x = spriteArray.treeSprite.left + spriteArray.treeSprite.width * 0.1;
+            mangoContainer.y = spriteArray.treeSprite.top + spriteArray.treeSprite.height * 0.1;
+            mangoSpriteArray = [];
             for (var i = 0; i < core.gameConstants.INIT_MANGO_NUM; i++) {
                 // mangoes will be randomly positioned
                 var p = new Phaser.Point();

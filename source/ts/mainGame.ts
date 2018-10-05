@@ -23,7 +23,7 @@ namespace monoloco.core {
 
     // Create an array to store key -> sprite pair
     let spriteArray: spriteObj = {};
-    let mangoSpriteArray: Array<Phaser.Sprite> = [];
+    let mangoSpriteArray: Array<Phaser.Sprite>;
     export let mainContainer: Phaser.Group;
     let line: Phaser.Graphics;
     let mangoContainer: Phaser.Group;
@@ -105,9 +105,6 @@ namespace monoloco.core {
 
         // A container to store mangoes.
         // Convenient, so that we don't have to worry about positioning anymore
-        mangoContainer = new Phaser.Group(game, mainContainer, "mangoContainer");
-        mangoContainer.x = spriteArray.treeSprite.left + spriteArray.treeSprite.width * 0.1;
-        mangoContainer.y = spriteArray.treeSprite.top + spriteArray.treeSprite.height * 0.1;
         createMangoes();
 
         line = new Phaser.Graphics(game);
@@ -252,7 +249,14 @@ namespace monoloco.core {
     }
 
     function resetAllValues(): void {
-
+        createMangoes();
+        isStoneDragging = false;
+        isStoneReleased = false;
+        line.clear();
+        mangoHitCount = 0;
+        stoneLeftCount = gameConstants.INIT_STONE_COUNT;
+        score.setText(mangoHitCount.toString());
+        stoneLeft.setText(stoneLeftCount.toString());
     }
 
     function onExitButtonClick(): void {
@@ -260,6 +264,15 @@ namespace monoloco.core {
     }
 
     function createMangoes(): void {
+        if (mangoContainer) {
+            mangoContainer.destroy(true, true);
+        }
+        mangoContainer = new Phaser.Group(game, mainContainer, "mangoContainer");
+        mangoContainer.x = spriteArray.treeSprite.left + spriteArray.treeSprite.width * 0.1;
+        mangoContainer.y = spriteArray.treeSprite.top + spriteArray.treeSprite.height * 0.1;
+
+        mangoSpriteArray = [];
+
         for (let i = 0; i < gameConstants.INIT_MANGO_NUM; i++) {
             // mangoes will be randomly positioned
             let p = new Phaser.Point();
