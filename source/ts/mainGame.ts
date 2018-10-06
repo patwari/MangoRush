@@ -36,7 +36,7 @@ namespace monoloco.core {
     let score: Phaser.BitmapText;
     let stoneLeft: Phaser.BitmapText;
     let mangoHitCount: number = 0;
-    let stoneLeftCount: number = gameConstants.INIT_STONE_COUNT;
+    let stoneLeftCount: number = core.gameConstants.INIT_STONE_COUNT;
 
     // Preload of the default state. It is used to load all needed resources
     function preload(): void {
@@ -221,7 +221,7 @@ namespace monoloco.core {
      * Also, if all the stones has been thrown, then display the final score
      */
     function checkIfStoneOut(): void {
-        if (spriteArray.stoneSprite.x > gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < 0 || spriteArray.stoneSprite.y < 0) {
+        if (spriteArray.stoneSprite.x > gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < -15 || spriteArray.stoneSprite.y < -15) {
             spriteArray.stoneSprite.body.reset(defaultStonePosX, defaultStonePosY);
             spriteArray.stoneSprite.x = defaultStonePosX;
             spriteArray.stoneSprite.y = defaultStonePosY;

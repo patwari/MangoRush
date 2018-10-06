@@ -214,7 +214,7 @@ var monoloco;
          * Also, if all the stones has been thrown, then display the final score
          */
         function checkIfStoneOut() {
-            if (spriteArray.stoneSprite.x > core.gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > core.gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < 0 || spriteArray.stoneSprite.y < 0) {
+            if (spriteArray.stoneSprite.x > core.gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > core.gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < -15 || spriteArray.stoneSprite.y < -15) {
                 spriteArray.stoneSprite.body.reset(defaultStonePosX, defaultStonePosY);
                 spriteArray.stoneSprite.x = defaultStonePosX;
                 spriteArray.stoneSprite.y = defaultStonePosY;
