@@ -35,6 +35,7 @@ namespace monoloco.core {
     let scoreboardContainer: Phaser.Group;
     let score: Phaser.BitmapText;
     let stoneLeft: Phaser.BitmapText;
+    let timer: Phaser.BitmapText;
     let mangoHitCount: number = 0;
     let stoneLeftCount: number = core.gameConstants.INIT_STONE_COUNT;
 
@@ -135,6 +136,23 @@ namespace monoloco.core {
         stoneLeft = new Phaser.BitmapText(game, 280, 120, 'desyrel', "3", 60);
         stoneLeft.anchor.set(1, 0);
         scoreboardContainer.addChild(stoneLeft);
+
+
+        // add timer
+        let timerContainer: Phaser.Group = game.add.group(mainContainer, "timerContainer");
+        timerContainer.position.set(80, 300);
+        let timerOuterRect: Phaser.Graphics = game.add.graphics(0, 0, timerContainer);
+        timerOuterRect.lineStyle(5, 0x555555, 0.8);
+        timerOuterRect.beginFill(0xCCCCCC);
+        timerOuterRect.drawRoundedRect(0, 0, 300, 100, 50);
+        timerOuterRect.endFill();
+        let timerLabel = new Phaser.BitmapText(game, 20, 20, 'desyrel', "Time Left: ", 60);
+        timerContainer.addChild(timerLabel);
+        timer = new Phaser.BitmapText(game, 208, 20, 'desyrel', "0", 60);
+
+
+
+
 
         // Add event listener to stone
         spriteArray.stoneSprite.events.onInputDown.add(() => {
