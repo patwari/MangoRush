@@ -34,9 +34,15 @@ namespace monoloco.core {
     let defaultStonePosY: number;
     let scoreboardContainer: Phaser.Group;
     let score: Phaser.BitmapText;
+    let timerBonusUntilNow: number = 0;
     let stoneLeft: Phaser.BitmapText;
+    let timer: Phaser.BitmapText;
+    let timerCount: number = core.gameConstants.INIT_BONUS_TIMER;
+    let intervalId: number = 0;
     let mangoHitCount: number = 0;
-    let stoneLeftCount: number = gameConstants.INIT_STONE_COUNT;
+    let stoneLeftCount: number = core.gameConstants.INIT_STONE_COUNT;
+    let lastCollisionStoneLeft: number = -1;
+
 
     // Preload of the default state. It is used to load all needed resources
     function preload(): void {
@@ -136,6 +142,25 @@ namespace monoloco.core {
         stoneLeft.anchor.set(1, 0);
         scoreboardContainer.addChild(stoneLeft);
 
+
+        // add timer
+        let timerContainer: Phaser.Group = game.add.group(mainContainer, "timerContainer");
+        timerContainer.position.set(80, 275);
+        let timerOuterRect: Phaser.Graphics = game.add.graphics(0, 0, timerContainer);
+        timerOuterRect.lineStyle(5, 0x555555, 0.8);
+        timerOuterRect.beginFill(0xCCCCCC);
+        timerOuterRect.drawRoundedRect(0, 0, 300, 100, 25);
+        timerOuterRect.endFill();
+        let timerLabel = new Phaser.BitmapText(game, 20, 20, 'desyrel', "Bonus: ", 45);
+        timerContainer.addChild(timerLabel);
+        timer = new Phaser.BitmapText(game, 280, 20, 'desyrel', "0", 45);
+        timer.anchor.set(1, 0);
+        timerContainer.addChild(timer);
+        intervalId = setInterval(() => {
+            timerCount--;
+            timer.setText(timerCount.toString());
+        }, core.gameConstants.BONUS_TIMER_UNIT_DURATION);
+
         // Add event listener to stone
         spriteArray.stoneSprite.events.onInputDown.add(() => {
             isStoneDragging = true;
@@ -187,6 +212,12 @@ namespace monoloco.core {
                     onCollision(i);
                 }
             }
+            score.setText((10 * mangoHitCount * gameConstants.VALUE_PER_MANGO / gameConstants.INIT_MANGO_NUM + timerBonusUntilNow).toString());
+        }
+
+        if (timerCount === 0 && intervalId) {
+            clearInterval(intervalId);
+            intervalId = 0;
         }
 
         checkIfStoneOut();
@@ -212,7 +243,10 @@ namespace monoloco.core {
         tempSprite.body.velocity.y = gameConstants.MANGO_DROP_VELOCITY;
 
         mangoHitCount++;
-        score.setText((10 * mangoHitCount * gameConstants.VALUE_PER_MANGO / gameConstants.INIT_MANGO_NUM).toString());
+        if (lastCollisionStoneLeft != stoneLeftCount) {
+            timerBonusUntilNow += timerCount;
+        }
+        lastCollisionStoneLeft = stoneLeftCount;
     }
 
     /**
@@ -221,12 +255,24 @@ namespace monoloco.core {
      * Also, if all the stones has been thrown, then display the final score
      */
     function checkIfStoneOut(): void {
-        if (spriteArray.stoneSprite.x > gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < 0 || spriteArray.stoneSprite.y < 0) {
+        if (spriteArray.stoneSprite.x > gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < -15 || spriteArray.stoneSprite.y < -15) {
             spriteArray.stoneSprite.body.reset(defaultStonePosX, defaultStonePosY);
             spriteArray.stoneSprite.x = defaultStonePosX;
             spriteArray.stoneSprite.y = defaultStonePosY;
+
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = 0;
+            }
             if (stoneLeftCount === 0) {
                 showFinalScoreBoard();
+            } else {
+                timerCount = core.gameConstants.INIT_BONUS_TIMER;
+                timer.setText(timerCount.toString());
+                intervalId = setInterval(() => {
+                    timerCount--;
+                    timer.setText(timerCount.toString());
+                }, core.gameConstants.BONUS_TIMER_UNIT_DURATION);
             }
         }
     }
@@ -252,7 +298,7 @@ namespace monoloco.core {
         let greetMsg = new Phaser.BitmapText(game, w * 0.5, h * 0.25, "desyrel", "---FINAL SCORE---", 120);
         greetMsg.anchor.set(0.5);
         finalScoreContainer.addChild(greetMsg);
-        let finalScore = new Phaser.BitmapText(game, w * 0.5, h * 0.5, "desyrel", (10 * mangoHitCount * gameConstants.VALUE_PER_MANGO / gameConstants.INIT_MANGO_NUM).toString(), 350);
+        let finalScore = new Phaser.BitmapText(game, w * 0.5, h * 0.5, "desyrel", (10 * mangoHitCount * gameConstants.VALUE_PER_MANGO / gameConstants.INIT_MANGO_NUM + timerBonusUntilNow).toString(), 350);
         finalScore.anchor.set(0.5);
         finalScoreContainer.addChild(finalScore);
         let tweenIn = game.add.tween(finalScoreContainer.scale);
@@ -283,9 +329,13 @@ namespace monoloco.core {
         isStoneReleased = false;
         line.clear();
         mangoHitCount = 0;
+        timerBonusUntilNow = 0;
+        timerCount = core.gameConstants.INIT_BONUS_TIMER;
+
         stoneLeftCount = gameConstants.INIT_STONE_COUNT;
         score.setText(mangoHitCount.toString());
         stoneLeft.setText(stoneLeftCount.toString());
+        timer.setText(timerCount.toString());
     }
 
     /**

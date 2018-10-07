@@ -5,6 +5,7 @@ var monoloco;
     (function (core) {
         core.gameConstants = {
             INIT_MANGO_NUM: 10,
+            INIT_BONUS_TIMER: 10,
             GAME_WIDTH: 1920,
             GAME_HEIGHT: 1080,
             MAX_VELOCITY: 1100,
@@ -13,7 +14,8 @@ var monoloco;
             COLLISION_DISTANCE: 70,
             MANGO_DROP_VELOCITY: 500,
             INIT_STONE_COUNT: 3,
-            VALUE_PER_MANGO: 10
+            VALUE_PER_MANGO: 10,
+            BONUS_TIMER_UNIT_DURATION: 1000
         };
     })(core = monoloco.core || (monoloco.core = {}));
 })(monoloco || (monoloco = {}));
@@ -52,9 +54,14 @@ var monoloco;
         var defaultStonePosY;
         var scoreboardContainer;
         var score;
+        var timerBonusUntilNow = 0;
         var stoneLeft;
+        var timer;
+        var timerCount = core.gameConstants.INIT_BONUS_TIMER;
+        var intervalId = 0;
         var mangoHitCount = 0;
         var stoneLeftCount = core.gameConstants.INIT_STONE_COUNT;
+        var lastCollisionStoneLeft = -1;
         // Preload of the default state. It is used to load all needed resources
         function preload() {
             core.game.scale.scaleMode = Phaser.ScaleManager.SHOW_ALL;
@@ -138,6 +145,23 @@ var monoloco;
             stoneLeft = new Phaser.BitmapText(core.game, 280, 120, 'desyrel', "3", 60);
             stoneLeft.anchor.set(1, 0);
             scoreboardContainer.addChild(stoneLeft);
+            // add timer
+            var timerContainer = core.game.add.group(core.mainContainer, "timerContainer");
+            timerContainer.position.set(80, 275);
+            var timerOuterRect = core.game.add.graphics(0, 0, timerContainer);
+            timerOuterRect.lineStyle(5, 0x555555, 0.8);
+            timerOuterRect.beginFill(0xCCCCCC);
+            timerOuterRect.drawRoundedRect(0, 0, 300, 100, 25);
+            timerOuterRect.endFill();
+            var timerLabel = new Phaser.BitmapText(core.game, 20, 20, 'desyrel', "Bonus: ", 45);
+            timerContainer.addChild(timerLabel);
+            timer = new Phaser.BitmapText(core.game, 280, 20, 'desyrel', "0", 45);
+            timer.anchor.set(1, 0);
+            timerContainer.addChild(timer);
+            intervalId = setInterval(function () {
+                timerCount--;
+                timer.setText(timerCount.toString());
+            }, core.gameConstants.BONUS_TIMER_UNIT_DURATION);
             // Add event listener to stone
             spriteArray.stoneSprite.events.onInputDown.add(function () {
                 isStoneDragging = true;
@@ -184,6 +208,11 @@ var monoloco;
                         onCollision(i);
                     }
                 }
+                score.setText((10 * mangoHitCount * core.gameConstants.VALUE_PER_MANGO / core.gameConstants.INIT_MANGO_NUM + timerBonusUntilNow).toString());
+            }
+            if (timerCount === 0 && intervalId) {
+                clearInterval(intervalId);
+                intervalId = 0;
             }
             checkIfStoneOut();
         }
@@ -206,7 +235,10 @@ var monoloco;
             });
             tempSprite.body.velocity.y = core.gameConstants.MANGO_DROP_VELOCITY;
             mangoHitCount++;
-            score.setText((10 * mangoHitCount * core.gameConstants.VALUE_PER_MANGO / core.gameConstants.INIT_MANGO_NUM).toString());
+            if (lastCollisionStoneLeft != stoneLeftCount) {
+                timerBonusUntilNow += timerCount;
+            }
+            lastCollisionStoneLeft = stoneLeftCount;
         }
         /**
          * This function is called every frame.
@@ -214,12 +246,24 @@ var monoloco;
          * Also, if all the stones has been thrown, then display the final score
          */
         function checkIfStoneOut() {
-            if (spriteArray.stoneSprite.x > core.gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > core.gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < 0 || spriteArray.stoneSprite.y < 0) {
+            if (spriteArray.stoneSprite.x > core.gameConstants.GAME_WIDTH || spriteArray.stoneSprite.y > core.gameConstants.GAME_HEIGHT || spriteArray.stoneSprite.x < -15 || spriteArray.stoneSprite.y < -15) {
                 spriteArray.stoneSprite.body.reset(defaultStonePosX, defaultStonePosY);
                 spriteArray.stoneSprite.x = defaultStonePosX;
                 spriteArray.stoneSprite.y = defaultStonePosY;
+                if (intervalId) {
+                    clearInterval(intervalId);
+                    intervalId = 0;
+                }
                 if (stoneLeftCount === 0) {
                     showFinalScoreBoard();
+                }
+                else {
+                    timerCount = core.gameConstants.INIT_BONUS_TIMER;
+                    timer.setText(timerCount.toString());
+                    intervalId = setInterval(function () {
+                        timerCount--;
+                        timer.setText(timerCount.toString());
+                    }, core.gameConstants.BONUS_TIMER_UNIT_DURATION);
                 }
             }
         }
@@ -242,7 +286,7 @@ var monoloco;
             var greetMsg = new Phaser.BitmapText(core.game, w * 0.5, h * 0.25, "desyrel", "---FINAL SCORE---", 120);
             greetMsg.anchor.set(0.5);
             finalScoreContainer.addChild(greetMsg);
-            var finalScore = new Phaser.BitmapText(core.game, w * 0.5, h * 0.5, "desyrel", (10 * mangoHitCount * core.gameConstants.VALUE_PER_MANGO / core.gameConstants.INIT_MANGO_NUM).toString(), 350);
+            var finalScore = new Phaser.BitmapText(core.game, w * 0.5, h * 0.5, "desyrel", (10 * mangoHitCount * core.gameConstants.VALUE_PER_MANGO / core.gameConstants.INIT_MANGO_NUM + timerBonusUntilNow).toString(), 350);
             finalScore.anchor.set(0.5);
             finalScoreContainer.addChild(finalScore);
             var tweenIn = core.game.add.tween(finalScoreContainer.scale);
@@ -269,9 +313,12 @@ var monoloco;
             isStoneReleased = false;
             line.clear();
             mangoHitCount = 0;
+            timerBonusUntilNow = 0;
+            timerCount = core.gameConstants.INIT_BONUS_TIMER;
             stoneLeftCount = core.gameConstants.INIT_STONE_COUNT;
             score.setText(mangoHitCount.toString());
             stoneLeft.setText(stoneLeftCount.toString());
+            timer.setText(timerCount.toString());
         }
         /**
          * This function will be called when the exit button is pressed when the final score board is displayed.[TODO]
