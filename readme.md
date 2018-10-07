@@ -4,6 +4,8 @@ Dhruv is hungry and sees a mango tree nearby.
 Help him throw stone and collect some mangoes to eat.
 
 ##Changelog
+### v1.1
+> Added timer bonus to the game
 ### v1.0
 > Initial game
 
