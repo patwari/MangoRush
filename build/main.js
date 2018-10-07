@@ -153,7 +153,7 @@ var monoloco;
             timerOuterRect.beginFill(0xCCCCCC);
             timerOuterRect.drawRoundedRect(0, 0, 300, 100, 25);
             timerOuterRect.endFill();
-            var timerLabel = new Phaser.BitmapText(core.game, 20, 20, 'desyrel', "Time Bonus: ", 45);
+            var timerLabel = new Phaser.BitmapText(core.game, 20, 20, 'desyrel', "Bonus: ", 45);
             timerContainer.addChild(timerLabel);
             timer = new Phaser.BitmapText(core.game, 280, 20, 'desyrel', "0", 45);
             timer.anchor.set(1, 0);
